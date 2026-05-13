@@ -13,7 +13,7 @@ const envSchema = z.object({
     DB_NAME: z.string(),
     JWT_SECRET: z.string().default('24h'),
     ADJUTOR_API_KEY: z.string(),
-    ADJUTOR_BASE_URL: z.string().url(),
+    ADJUTOR_BASE_URL: z.url(),
 });
 
 const parsed = envSchema.safeParse(process.env);

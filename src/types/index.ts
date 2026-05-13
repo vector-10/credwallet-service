@@ -1,0 +1,75 @@
+export interface User {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+  password_hash: string;
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+  deleted_at: Date | null;
+}
+
+export interface Wallet {
+  id: number;
+  user_id: number;
+  account_number: string;
+  balance: number;
+  minimum_balance: number;
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface Transaction {
+  id: number;
+  reference: string;
+  source_wallet_id: number | null;
+  destination_wallet_id: number | null;
+  amount: number;
+  type: 'FUND' | 'TRANSFER' | 'WITHDRAWAL';
+  status: 'PENDING' | 'SUCCESS' | 'FAILED';
+  description: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CreateUserPayload {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+  password: string;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface FundWalletPayload {
+  amount: number;
+}
+
+export interface TransferPayload {
+  recipient_account_number: string;
+  amount: number;
+  description?: string;
+}
+
+export interface WithdrawPayload {
+  amount: number;
+  description?: string;
+}
+
+export interface ApiResponse<T = null> {
+  success: boolean;
+  message: string;
+  data?: T;
+}
+
+export interface AuthTokenPayload {
+  userId: number;
+  email: string;
+}
