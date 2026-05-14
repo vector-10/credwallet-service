@@ -5,17 +5,26 @@ import { Transaction } from '../types';
 export class TransactionRepository {
   async create(
     payload: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>,
-    trx?: any
+    trx: any
   ): Promise<Transaction> {
     const id = uuidv4();
-    const query = trx ? trx('transactions') : db('transactions');
-    await query.insert({
+    await trx('transactions').insert({
       id,
       ...payload,
       created_at: new Date(),
       updated_at: new Date(),
     });
-    return db('transactions').where({ id }).first();
+    return trx('transactions').where({ id }).first();
+  }
+
+  async updateStatus(
+    id: string,
+    status: Transaction['status'],
+    trx: any
+  ): Promise<void> {
+    await trx('transactions')
+      .where({ id })
+      .update({ status, updated_at: new Date() });
   }
 
   async findByReference(reference: string): Promise<Transaction | null> {

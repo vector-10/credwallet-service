@@ -69,6 +69,17 @@ export interface ApiResponse<T = null> {
   data?: T;
 }
 
+export interface LedgerEntry {
+  id: string;
+  wallet_id: string | null;
+  transaction_id: string;
+  entry_type: 'DEBIT' | 'CREDIT';
+  amount: number;
+  balance_before: number | null;
+  balance_after: number | null;
+  created_at: Date;
+}
+
 export interface AuthTokenPayload {
   userId: string;
   email: string;
