@@ -2,8 +2,8 @@ import type { Knex } from "knex";
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable("wallets", (table) => {
-    table.bigIncrements("id").primary();
-    table.bigInteger("user_id").unsigned().unique().notNullable();
+    table.uuid("id").primary();
+    table.uuid("user_id").unique().notNullable();
     table
       .foreign("user_id")
       .references("id")

@@ -10,7 +10,8 @@
     "test": "jest --runInBand --forceExit",
     "migrate:latest": "knex migrate:latest --knexfile knexfile.ts",
     "migrate:rollback": "knex migrate:rollback --knexfile knexfile.ts",
-    "migrate:make": "knex migrate:make --knexfile knexfile.ts"
+    "migrate:make": "knex migrate:make --knexfile knexfile.ts",
+    "debug": "ts-node --inspect src/server.ts"
   },
   "repository": {
     "type": "git",

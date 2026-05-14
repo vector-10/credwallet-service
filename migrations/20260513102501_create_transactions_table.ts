@@ -2,15 +2,15 @@ import type { Knex } from "knex";
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable("transactions", (table) => {
-    table.bigIncrements("id").primary();
+    table.uuid("id").primary();
     table.string("reference", 100).unique().notNullable();
-    table.bigInteger("source_wallet_id").unsigned().nullable();
+    table.uuid("source_wallet_id").nullable();
     table
       .foreign("source_wallet_id")
       .references("id")
       .inTable("wallets")
       .onDelete("RESTRICT");
-    table.bigInteger("destination_wallet_id").unsigned().nullable();
+    table.uuid("destination_wallet_id").nullable();
     table
       .foreign("destination_wallet_id")
       .references("id")

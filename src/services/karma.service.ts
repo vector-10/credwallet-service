@@ -9,7 +9,15 @@ export class KarmaService {
     this.apiKey = env.ADJUTOR_API_KEY;
   }
 
-  async isBlacklisted(identity: string): Promise<boolean> {
+  async isBlacklisted(email: string, phone: string): Promise<boolean> {
+    const [emailBlacklisted, phoneBlacklisted] = await Promise.all([
+      this.checkIdentity(email),
+      this.checkIdentity(phone),
+    ]);
+    return emailBlacklisted || phoneBlacklisted;
+  }
+
+  private async checkIdentity(identity: string): Promise<boolean> {
     try {
       const response = await fetch(
         `${this.baseUrl}/verification/karma/${identity}`,
@@ -21,8 +29,6 @@ export class KarmaService {
           },
         },
       );
-
-
       const data = (await response.json()) as any;
       return data?.status === "success" && data?.data !== null;
     } catch {

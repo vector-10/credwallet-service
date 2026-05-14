@@ -1,5 +1,5 @@
 export interface User {
-  id: number;
+  id: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -12,8 +12,8 @@ export interface User {
 }
 
 export interface Wallet {
-  id: number;
-  user_id: number;
+  id: string;
+  user_id: string;
   account_number: string;
   balance: number;
   minimum_balance: number;
@@ -23,10 +23,10 @@ export interface Wallet {
 }
 
 export interface Transaction {
-  id: number;
+  id: string;
   reference: string;
-  source_wallet_id: number | null;
-  destination_wallet_id: number | null;
+  source_wallet_id: string | null;
+  destination_wallet_id: string | null;
   amount: number;
   type: 'FUND' | 'TRANSFER' | 'WITHDRAWAL';
   status: 'PENDING' | 'SUCCESS' | 'FAILED';
@@ -70,6 +70,6 @@ export interface ApiResponse<T = null> {
 }
 
 export interface AuthTokenPayload {
-  userId: number;
+  userId: string;
   email: string;
 }

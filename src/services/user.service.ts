@@ -27,7 +27,7 @@ export class UserService {
     );
     if (existingPhone) throw new Error("Phone number already in use");
 
-    const isBlacklisted = await this.karmaService.isBlacklisted(payload.email);
+    const isBlacklisted = await this.karmaService.isBlacklisted(payload.email, payload.phone_number);
     if (isBlacklisted) throw new Error("Account creation denied");
 
     const password_hash = await bcrypt.hash(payload.password, 12);

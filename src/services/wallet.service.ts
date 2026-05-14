@@ -13,7 +13,7 @@ export class WalletService {
     this.transactionRepository = new TransactionRepository();
   }
 
-  async fund(userId: number, payload: FundWalletPayload) {
+  async fund(userId: string, payload: FundWalletPayload) {
     const wallet = await this.walletRepository.findByUserId(userId);
     if (!wallet) throw new Error('Wallet not found');
 
@@ -38,7 +38,7 @@ export class WalletService {
     return { balance: newBalance };
   }
 
-  async transfer(userId: number, payload: TransferPayload) {
+  async transfer(userId: string, payload: TransferPayload) {
     const senderWallet = await this.walletRepository.findByUserId(userId);
     if (!senderWallet) throw new Error('Sender wallet not found');
 
@@ -84,7 +84,7 @@ export class WalletService {
     return { balance: newSenderBalance };
   }
 
-  async withdraw(userId: number, payload: WithdrawPayload) {
+  async withdraw(userId: string, payload: WithdrawPayload) {
     const wallet = await this.walletRepository.findByUserId(userId);
     if (!wallet) throw new Error('Wallet not found');
 
@@ -118,7 +118,7 @@ export class WalletService {
     return { balance: newBalance };
   }
 
-  async getBalance(userId: number) {
+  async getBalance(userId: string) {
     const wallet = await this.walletRepository.findByUserId(userId);
     if (!wallet) throw new Error('Wallet not found');
 
@@ -129,7 +129,7 @@ export class WalletService {
     };
   }
 
-  async getTransactions(userId: number) {
+  async getTransactions(userId: string) {
     const wallet = await this.walletRepository.findByUserId(userId);
     if (!wallet) throw new Error('Wallet not found');
 
