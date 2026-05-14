@@ -84,3 +84,6 @@ export interface AuthTokenPayload {
   userId: string;
   email: string;
 }
+
+export type SanitizedUser = Omit<User, 'password_hash' | 'deleted_at'>;
+export type SanitizedWallet = Omit<Wallet, never>;

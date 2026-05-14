@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { User, Wallet, SanitizedUser, SanitizedWallet } from '../types';
 
 export const generateAccountNumber = (): string => {
   const prefix = '9';
@@ -8,12 +9,11 @@ export const generateAccountNumber = (): string => {
   return `${prefix}${randomDigits}`;
 };
 
-
 export const generateTransactionReference = (): string => {
   return `TXN-${uuidv4().replace(/-/g, '').toUpperCase().slice(0, 16)}`;
 };
 
-export const sanitizeUser = (user: any) => {
+export const sanitizeUser = (user: User): SanitizedUser => {
   const { password_hash, deleted_at, ...sanitized } = user;
   return {
     ...sanitized,
@@ -21,7 +21,7 @@ export const sanitizeUser = (user: any) => {
   };
 };
 
-export const sanitizeWallet = (wallet: any) => ({
+export const sanitizeWallet = (wallet: Wallet): SanitizedWallet => ({
   ...wallet,
   is_active: Boolean(wallet.is_active),
   balance: Number(wallet.balance),

@@ -5,23 +5,26 @@ import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth.routes';
 import walletRoutes from './routes/wallet.routes';
 import { errorHandler } from './middlewares/error.middleware';
+import { env } from './config/env';
 
 const app = express();
 
 app.use(helmet());
 
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGIN || '*',
+  origin: env.ALLOWED_ORIGIN ?? '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+const rateLimitMessage = { success: false, message: 'Too many requests, please try again later' };
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: 'Too many requests, please try again later' },
+  message: rateLimitMessage,
 });
 
 const walletLimiter = rateLimit({
@@ -29,7 +32,7 @@ const walletLimiter = rateLimit({
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: 'Too many requests, please try again later' },
+  message: rateLimitMessage,
 });
 
 app.use(express.json());

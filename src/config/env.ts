@@ -17,6 +17,7 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.enum(["1h", "12h", "24h", "7d"]).default("24h"),
   ADJUTOR_API_KEY: z.string(),
   ADJUTOR_BASE_URL: z.url(),
+  ALLOWED_ORIGIN: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -24,7 +25,7 @@ const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {
   console.error(
     "Invalid environment variables:",
-    parsed.error.flatten().fieldErrors,
+    parsed.error.flatten((i) => i.message).fieldErrors,
   );
   process.exit(1);
 }
