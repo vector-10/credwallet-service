@@ -15,5 +15,15 @@ export const generateTransactionReference = (): string => {
 
 export const sanitizeUser = (user: any) => {
   const { password_hash, deleted_at, ...sanitized } = user;
-  return sanitized;
+  return {
+    ...sanitized,
+    is_active: Boolean(sanitized.is_active),
+  };
 };
+
+export const sanitizeWallet = (wallet: any) => ({
+  ...wallet,
+  is_active: Boolean(wallet.is_active),
+  balance: Number(wallet.balance),
+  minimum_balance: Number(wallet.minimum_balance),
+});

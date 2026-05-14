@@ -1,15 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
+import { AppError } from '../utils/errors';
 
 export const errorHandler = (
   error: Error,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
-  console.error(`[Error] ${error.message}`, error.stack);
+  if (error instanceof AppError) {
+    res.status(error.statusCode).json({ success: false, message: error.message });
+    return;
+  }
 
-  res.status(500).json({
-    success: false,
-    message: 'An unexpected error occurred',
-  });
+  console.error(`[Error] ${error.message}`, error.stack);
+  res.status(500).json({ success: false, message: 'An unexpected error occurred' });
 };

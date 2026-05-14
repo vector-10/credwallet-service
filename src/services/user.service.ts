@@ -5,7 +5,8 @@ import { WalletRepository } from "../repositories/wallet.repository";
 import { KarmaService } from "./karma.service";
 import { CreateUserPayload, LoginPayload } from "../types";
 import { env } from "../config/env";
-import { generateAccountNumber, sanitizeUser } from "../utils/helpers";
+import { generateAccountNumber, sanitizeUser, sanitizeWallet } from "../utils/helpers";
+import { AppError } from "../utils/errors";
 
 export class UserService {
   private userRepository: UserRepository;
@@ -20,15 +21,13 @@ export class UserService {
 
   async register(payload: CreateUserPayload) {
     const existingEmail = await this.userRepository.findByEmail(payload.email);
-    if (existingEmail) throw new Error("Email already in use");
+    if (existingEmail) throw new AppError(409, "Email already in use");
 
-    const existingPhone = await this.userRepository.findByPhone(
-      payload.phone_number,
-    );
-    if (existingPhone) throw new Error("Phone number already in use");
+    const existingPhone = await this.userRepository.findByPhone(payload.phone_number);
+    if (existingPhone) throw new AppError(409, "Phone number already in use");
 
     const isBlacklisted = await this.karmaService.isBlacklisted(payload.email, payload.phone_number);
-    if (isBlacklisted) throw new Error("Account creation denied");
+    if (isBlacklisted) throw new AppError(403, "Account creation denied");
 
     const password_hash = await bcrypt.hash(payload.password, 12);
 
@@ -43,17 +42,17 @@ export class UserService {
     const account_number = generateAccountNumber();
     const wallet = await this.walletRepository.create(user.id, account_number);
 
-    return { user: sanitizeUser(user), wallet };
+    return { user: sanitizeUser(user), wallet: sanitizeWallet(wallet) };
   }
 
   async login(payload: LoginPayload) {
     const user = await this.userRepository.findByEmail(payload.email);
-    if (!user) throw new Error("Invalid email or password");
+    if (!user) throw new AppError(401, "Invalid email or password");
 
-    if (!user.is_active) throw new Error("Account is deactivated");
+    if (!user.is_active) throw new AppError(403, "Account is deactivated");
 
     const isMatch = await bcrypt.compare(payload.password, user.password_hash);
-    if (!isMatch) throw new Error("Invalid email or password");
+    if (!isMatch) throw new AppError(401, "Invalid email or password");
 
     const token = jwt.sign(
       { userId: user.id, email: user.email },

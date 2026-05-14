@@ -27,8 +27,17 @@ export class WalletRepository {
     return db('wallets').where({ account_number, is_active: true }).first() ?? null;
   }
 
-  async updateBalance(id: string, balance: number, trx?: any): Promise<void> {
-    const query = trx ? trx('wallets') : db('wallets');
-    await query.where({ id }).update({ balance, updated_at: new Date() });
+  async findByIdWithLock(id: string, trx: any): Promise<Wallet | null> {
+    return trx('wallets').where({ id, is_active: true }).forUpdate().first() ?? null;
+  }
+
+  async findByIdInTransaction(id: string, trx: any): Promise<Wallet | null> {
+    return trx('wallets').where({ id, is_active: true }).first() ?? null;
+  }
+
+  async adjustBalance(id: string, amount: number, trx: any): Promise<void> {
+    await trx('wallets')
+      .where({ id })
+      .update({ balance: trx.raw('balance + ?', [amount]), updated_at: new Date() });
   }
 }

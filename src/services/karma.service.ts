@@ -1,4 +1,5 @@
 import { env } from "../config/env";
+import { AppError } from "../utils/errors";
 
 export class KarmaService {
   private readonly baseUrl: string;
@@ -32,7 +33,7 @@ export class KarmaService {
       const data = (await response.json()) as any;
       return data?.status === "success" && data?.data !== null;
     } catch {
-      throw new Error("Unable to verify user identity. Please try again.");
+      throw new AppError(503, "Unable to verify user identity. Please try again.");
     }
   }
 }
