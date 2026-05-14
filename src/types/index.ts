@@ -80,6 +80,15 @@ export interface LedgerEntry {
   created_at: Date;
 }
 
+export interface IdempotencyRecord {
+  id: string;
+  key: string;
+  response_status: number;
+  response_body: string;
+  expires_at: Date;
+  created_at: Date;
+}
+
 export interface AuthTokenPayload {
   userId: string;
   email: string;
