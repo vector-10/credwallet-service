@@ -60,6 +60,12 @@
     "testMatch": [
       "**/tests/**/*.test.ts"
     ],
-    "clearMocks": true
+    "clearMocks": true,
+    "transform": {
+      "^.+\\.ts$": ["ts-jest", { "tsconfig": "tsconfig.test.json" }]
+    },
+    "moduleNameMapper": {
+      "^uuid$": "<rootDir>/tests/__mocks__/uuid.ts"
+    }
   }
 }
