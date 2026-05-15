@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { WalletService } from '../services/wallet.service';
 import { asyncHandler } from '../utils/asyncHandler';
+import { paginationSchema } from '../validators';
 
 export class WalletController {
   private walletService: WalletService;
@@ -30,7 +31,8 @@ export class WalletController {
   });
 
   getTransactions = asyncHandler(async (req: Request, res: Response) => {
-    const result = await this.walletService.getTransactions(req.user!.userId);
+    const { page, limit } = paginationSchema.parse(req.query);
+    const result = await this.walletService.getTransactions(req.user!.userId, page, limit);
     res.status(200).json({ success: true, message: 'Transactions retrieved successfully', data: result });
   });
 }

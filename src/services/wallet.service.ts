@@ -242,8 +242,18 @@ export class WalletService {
     };
   }
 
-  async getTransactions(userId: string) {
+  async getTransactions(userId: string, page: number, limit: number) {
     const wallet = await this.getWalletOrThrow(userId);
-    return this.transactionRepository.findByWalletId(wallet.id);
+    const offset = (page - 1) * limit;
+    const { data, total } = await this.transactionRepository.findByWalletId(wallet.id, limit, offset);
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
   }
 }

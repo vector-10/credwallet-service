@@ -211,22 +211,32 @@ describe('WalletService', () => {
   });
 
   describe('getTransactions', () => {
-    it('should return the transaction list for a wallet', async () => {
+    it('should return paginated transactions with metadata', async () => {
       mockWalletRepo.findByUserId.mockResolvedValue(mockWallet);
-      const mockTxnRepo2 = jest.mocked(TransactionRepository).prototype;
-      mockTxnRepo2.findByWalletId.mockResolvedValue([mockTransaction]);
+      mockTxnRepo.findByWalletId.mockResolvedValue({ data: [mockTransaction], total: 1 });
 
-      const result = await walletService.getTransactions('user-uuid-1');
+      const result = await walletService.getTransactions('user-uuid-1', 1, 20);
 
-      expect(result).toHaveLength(1);
-      expect(result[0].reference).toBe('TXN-ABC123');
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].reference).toBe('TXN-ABC123');
+      expect(result.pagination).toEqual({ page: 1, limit: 20, total: 1, pages: 1 });
+    });
+
+    it('should calculate pages correctly for multi-page results', async () => {
+      mockWalletRepo.findByUserId.mockResolvedValue(mockWallet);
+      mockTxnRepo.findByWalletId.mockResolvedValue({ data: [], total: 45 });
+
+      const result = await walletService.getTransactions('user-uuid-1', 1, 20);
+
+      expect(result.pagination.pages).toBe(3);
+      expect(result.pagination.total).toBe(45);
     });
 
     it('should throw 404 when wallet is not found', async () => {
       mockWalletRepo.findByUserId.mockResolvedValue(null);
 
       await expect(
-        walletService.getTransactions('user-uuid-1')
+        walletService.getTransactions('user-uuid-1', 1, 20)
       ).rejects.toMatchObject({ statusCode: 404, message: 'Wallet not found' });
     });
   });

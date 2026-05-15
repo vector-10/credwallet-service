@@ -31,10 +31,21 @@ export class TransactionRepository {
     return db('transactions').where({ reference }).first() ?? null;
   }
 
-  async findByWalletId(wallet_id: string): Promise<Transaction[]> {
-    return db('transactions')
-      .where('source_wallet_id', wallet_id)
-      .orWhere('destination_wallet_id', wallet_id)
-      .orderBy('created_at', 'desc');
+  async findByWalletId(
+    wallet_id: string,
+    limit: number,
+    offset: number
+  ): Promise<{ data: Transaction[]; total: number }> {
+    const baseQuery = () =>
+      db('transactions')
+        .where('source_wallet_id', wallet_id)
+        .orWhere('destination_wallet_id', wallet_id);
+
+    const [data, [{ count }]] = await Promise.all([
+      baseQuery().orderBy('created_at', 'desc').limit(limit).offset(offset),
+      baseQuery().count('id as count'),
+    ]);
+
+    return { data, total: Number(count) };
   }
 }
