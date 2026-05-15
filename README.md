@@ -2,7 +2,6 @@
 
 A production-ready wallet service built to enable users receive, transfer, and withdraw funds for lending operations. CredWallet is designed with financial accuracy at its core — every transaction is traceable, every balance is protected, and bad actors are screened out before they ever touch the system.
 
-> Built as part of the Lendsqr Backend Engineering Assessment.
 
 ---
 
@@ -22,9 +21,9 @@ A production-ready wallet service built to enable users receive, transfer, and w
 
 ## Overview
 
-CredWallet is a secure wallet service where users can create accounts, fund their wallets, transfer money to other users, and withdraw funds. It is built specifically for a lending context — where money is constantly moving between borrowers and lenders — which means the system must be accurate, safe, and auditable at all times.
+CredWallet is a secure wallet service where users can create accounts, fund their wallets, transfer money to other users, and withdraw funds. It is built specifically for a lending context where money is constantly moving between borrowers and lenders. This means the system must be accurate, safe, and auditable at all times.
 
-Beyond basic wallet operations, CredWallet automatically screens out users who appear on the Lendsqr Adjutor Karma blacklist at the point of registration. A flagged user — identified by email or phone number — is denied onboarding entirely, protecting the platform and its users from bad actors.
+Beyond basic wallet operations, CredWallet automatically screens out users who appear on the Lendsqr Adjutor Karma blacklist at the point of registration. A flagged user identified by email or phone number is denied onboarding entirely, protecting the platform and its users from bad actors.
 
 ---
 
@@ -34,16 +33,16 @@ Beyond basic wallet operations, CredWallet automatically screens out users who a
 |---|---|---|
 | NodeJS (LTS) | Runtime | Required by assessment; industry standard for high-throughput APIs |
 | TypeScript (strict) | Language | Catches type errors at compile time — non-negotiable for financial systems |
-| Express | Web framework | Minimal and flexible; keeps the codebase lean without framework overhead |
+| Express | Web framework | Minimal and flexible; keeps the codebase lean without much framework overhead |
 | KnexJS | Query builder / SQL toolkit | Required by assessment; gives full SQL control with migration support |
 | MySQL | Database | Required by assessment; relational integrity suits financial data |
 | Zod | Validation | Runtime schema validation with TypeScript type inference at the boundary |
-| bcryptjs | Password hashing | Industry-standard adaptive hashing with configurable salt rounds |
+| bcryptjs | Password hashing | Adaptive hashing with configurable salt rounds |
 | jsonwebtoken | Authentication | Faux token-based auth as specified by the assessment |
 | Helmet | Security | Sets HTTP security headers out of the box |
 | express-rate-limit | Rate limiting | Protects auth and wallet endpoints from brute force and abuse |
 | CORS | Cross-origin | Controls which origins can access the API |
-| uuid | ID generation | Cryptographically random UUIDs — sequential IDs are a security risk |
+| uuid | ID generation | Cryptographically random UUIDs for security of user data |
 
 ---
 
@@ -101,7 +100,7 @@ This separation is intentional. Services can be fully unit tested in isolation b
 
 **users** — Stores account credentials and profile. `is_active` enables soft account deactivation. `deleted_at` enables soft deletes without destroying audit history.
 
-**wallets** — One wallet per user (enforced by unique constraint on `user_id`). Holds a cached `balance` for fast reads and a `minimum_balance` floor that must always be maintained.
+**wallets** — One wallet per user (enforced by unique constraint on `user_id`). Holds a pre-computed `balance` — a running total kept in sync with the ledger via atomic database transactions — and a `minimum_balance` floor that must always be maintained.
 
 **transactions** — Records every financial event (FUND, TRANSFER, WITHDRAWAL) with a state machine: `PENDING → SUCCESS`. Acts as the user-facing transaction history.
 
@@ -122,7 +121,7 @@ This separation is intentional. Services can be fully unit tested in isolation b
 
 For a wallet that handles sensitive financial operations, a double-entry ledger ensures all transactions — debits, credits, funds, and withdrawals — are fully traceable and auditable, minimising room for error and reconciliation problems.
 
-This was not required by the assessment spec. It was added because it is a basic requirement for any wallet system handling real funds in a production environment. Every operation writes two immutable ledger entries and records `balance_before` and `balance_after` on each affected wallet. The `balance` column on the wallets table is kept as a cached value for fast reads, but it is always updated atomically inside the same database transaction that writes the ledger entries.
+This was not required by the assessment spec. It was added because it is a basic requirement for any wallet system handling real funds in a production environment. Every operation writes two immutable ledger entries and records `balance_before` and `balance_after` on each affected wallet. The `balance` column on the wallets table is a pre-computed running total — updated atomically inside the same database transaction that writes the ledger entries. It cannot drift from the ledger because they share the same transaction boundary: if the ledger write fails, the balance update rolls back too, and vice versa. The ground truth is always the ledger; the balance column is what makes reads fast without sacrificing correctness.
 
 | Operation | Entry 1 | Entry 2 |
 |-----------|---------|---------|
@@ -350,7 +349,7 @@ Business logic is unit tested in isolation through repository mocking. Controlle
 These are deliberate decisions made to stay within MVP scope without compromising on the core requirements. They are not oversights.
 
 ### Derived Balance (not implemented)
-A fully production-grade ledger derives the wallet balance entirely from the sum of settled ledger entries (`SUM(CREDIT) - SUM(DEBIT)`), never storing it directly. The current implementation keeps `balance` as a cached column updated atomically alongside ledger writes. For this MVP, this is the right trade-off — it keeps reads fast and the logic simple without sacrificing correctness.
+A fully production-grade ledger derives the wallet balance entirely from the sum of settled ledger entries (`SUM(CREDIT) - SUM(DEBIT)`), never storing it directly. The current implementation maintains `balance` as a pre-computed running total, updated atomically alongside every ledger write inside the same database transaction. For this MVP, this is the right trade-off — it keeps reads fast and the logic simple without sacrificing correctness.
 
 ### Chart of Accounts (not implemented)
 Production fintech systems model asset accounts, liability accounts, revenue accounts, and float/escrow accounts so the books always balance at the company level (`Assets = Liabilities + Equity`). This was intentionally left out — it requires product-level decisions about fee structure, escrow handling, and regulatory reporting that are out of scope for this assessment.
