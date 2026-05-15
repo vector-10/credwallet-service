@@ -4,20 +4,23 @@ import { User, CreateUserPayload } from '../types';
 
 export class UserRepository {
   async create(
-    payload: Omit<CreateUserPayload, 'password'> & { password_hash: string }
+    payload: Omit<CreateUserPayload, 'password'> & { password_hash: string },
+    trx?: any
   ): Promise<User> {
     const id = uuidv4();
-    await db('users').insert({
+    const builder = trx ?? db;
+    await builder('users').insert({
       id,
       ...payload,
       created_at: new Date(),
       updated_at: new Date(),
     });
-    return this.findById(id) as Promise<User>;
+    return this.findById(id, trx) as Promise<User>;
   }
 
-  async findById(id: string): Promise<User | null> {
-    return db('users').where({ id, is_active: true, deleted_at: null }).first() ?? null;
+  async findById(id: string, trx?: any): Promise<User | null> {
+    const builder = trx ?? db;
+    return builder('users').where({ id, is_active: true, deleted_at: null }).first() ?? null;
   }
 
   async findByEmail(email: string): Promise<User | null> {

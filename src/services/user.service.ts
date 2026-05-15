@@ -8,6 +8,7 @@ import { env } from "../config/env";
 import { generateAccountNumber, sanitizeUser, sanitizeWallet } from "../utils/helpers";
 import { AppError } from "../utils/errors";
 import { encrypt } from "../utils/encryption";
+import db from "../config/database";
 
 export class UserService {
   private userRepository: UserRepository;
@@ -33,17 +34,21 @@ export class UserService {
     const password_hash = await bcrypt.hash(payload.password, 12);
     const bvn = encrypt(payload.bvn);
 
-    const user = await this.userRepository.create({
-      first_name: payload.first_name,
-      last_name: payload.last_name,
-      email: payload.email,
-      phone_number: payload.phone_number,
-      bvn,
-      password_hash,
-    });
+    const [user, wallet] = await db.transaction(async (trx) => {
+      const user = await this.userRepository.create({
+        first_name: payload.first_name,
+        last_name: payload.last_name,
+        email: payload.email,
+        phone_number: payload.phone_number,
+        bvn,
+        password_hash,
+      }, trx);
 
-    const account_number = generateAccountNumber();
-    const wallet = await this.walletRepository.create(user.id, account_number);
+      const account_number = generateAccountNumber();
+      const wallet = await this.walletRepository.create(user.id, account_number, trx);
+
+      return [user, wallet] as const;
+    });
 
     return { user: sanitizeUser(user), wallet: sanitizeWallet(wallet) };
   }

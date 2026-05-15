@@ -21,7 +21,8 @@ describe('KarmaService', () => {
   describe('isBlacklisted', () => {
     it('should return false when BVN is clean', async () => {
       mockFetch.mockResolvedValue({
-        json: async () => ({}),
+        ok: true,
+        json: async () => ({ status: 'success', data: null }),
       });
 
       const result = await karmaService.isBlacklisted('12345678901');
@@ -31,12 +32,36 @@ describe('KarmaService', () => {
 
     it('should return true when BVN is blacklisted', async () => {
       mockFetch.mockResolvedValue({
+        ok: true,
         json: async () => ({ status: 'success', data: { karma_identity: '12345678901' } }),
       });
 
       const result = await karmaService.isBlacklisted('12345678901');
 
       expect(result).toBe(true);
+    });
+
+    it('should throw AppError 503 when Adjutor returns a non-success status', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ status: 'error', message: 'Something went wrong' }),
+      });
+
+      await expect(
+        karmaService.isBlacklisted('12345678901')
+      ).rejects.toMatchObject({ statusCode: 503 });
+    });
+
+    it('should throw AppError 503 when Adjutor returns a non-2xx HTTP status', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({ status: 'error' }),
+      });
+
+      await expect(
+        karmaService.isBlacklisted('12345678901')
+      ).rejects.toMatchObject({ statusCode: 503 });
     });
 
     it('should throw AppError 503 when the karma API is unreachable', async () => {

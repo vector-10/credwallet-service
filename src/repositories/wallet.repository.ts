@@ -3,20 +3,22 @@ import db from '../config/database';
 import { Wallet } from '../types';
 
 export class WalletRepository {
-  async create(user_id: string, account_number: string): Promise<Wallet> {
+  async create(user_id: string, account_number: string, trx?: any): Promise<Wallet> {
     const id = uuidv4();
-    await db('wallets').insert({
+    const builder = trx ?? db;
+    await builder('wallets').insert({
       id,
       user_id,
       account_number,
       created_at: new Date(),
       updated_at: new Date(),
     });
-    return this.findById(id) as Promise<Wallet>;
+    return this.findById(id, trx) as Promise<Wallet>;
   }
 
-  async findById(id: string): Promise<Wallet | null> {
-    return db('wallets').where({ id, is_active: true }).first() ?? null;
+  async findById(id: string, trx?: any): Promise<Wallet | null> {
+    const builder = trx ?? db;
+    return builder('wallets').where({ id, is_active: true }).first() ?? null;
   }
 
   async findByUserId(user_id: string, trx?: any): Promise<Wallet | null> {

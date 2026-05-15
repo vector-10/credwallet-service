@@ -14,17 +14,22 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+const amountSchema = z
+  .number()
+  .min(0.01, 'Amount must be at least 0.01')
+  .refine(v => Math.round(v * 100) / 100 === v, 'Amount must have at most 2 decimal places');
+
 export const fundWalletSchema = z.object({
-  amount: z.number().positive('Amount must be greater than zero'),
+  amount: amountSchema,
 });
 
 export const transferSchema = z.object({
   recipient_account_number: z.string().length(10, 'Invalid account number'),
-  amount: z.number().positive('Amount must be greater than zero'),
+  amount: amountSchema,
   description: z.string().optional(),
 });
 
 export const withdrawSchema = z.object({
-  amount: z.number().positive('Amount must be greater than zero'),
+  amount: amountSchema,
   description: z.string().optional(),
 });

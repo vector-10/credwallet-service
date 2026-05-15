@@ -17,6 +17,11 @@ export const idempotency = async (
     return;
   }
 
+  if (key.length > 255) {
+    res.status(400).json({ success: false, message: 'Idempotency-Key must not exceed 255 characters' });
+    return;
+  }
+
   try {
     await idempotencyRepository.create({
       key,

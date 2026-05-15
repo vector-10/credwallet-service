@@ -26,9 +26,16 @@ export class KarmaService {
           },
         },
       );
+      if (!response.ok) {
+        throw new AppError(503, "Unable to verify user identity. Please try again.");
+      }
       const data = (await response.json()) as any;
-      return data?.status === "success" && data?.data !== null;
-    } catch {
+      if (data?.status !== "success") {
+        throw new AppError(503, "Unable to verify user identity. Please try again.");
+      }
+      return data.data !== null;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
       throw new AppError(503, "Unable to verify user identity. Please try again.");
     }
   }

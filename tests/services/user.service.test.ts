@@ -16,6 +16,10 @@ jest.mock('../../src/config/env', () => ({
 jest.mock('../../src/utils/encryption', () => ({
   encrypt: jest.fn((val: string) => `encrypted:${val}`),
 }));
+jest.mock('../../src/config/database', () => ({
+  __esModule: true,
+  default: { transaction: jest.fn((cb: (trx: any) => any) => cb({})) },
+}));
 
 const mockUserRepo = jest.mocked(UserRepository).prototype;
 const mockWalletRepo = jest.mocked(WalletRepository).prototype;

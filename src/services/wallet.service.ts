@@ -33,7 +33,7 @@ export class WalletService {
     amount: number,
     minimum: number,
   ): void {
-    if (balance - amount < minimum) {
+    if (Math.round((balance - amount) * 100) / 100 < minimum) {
       throw new AppError(
         400,
         `Insufficient balance. Minimum balance of ₦${minimum} must be maintained`,
@@ -47,7 +47,7 @@ export class WalletService {
       if (!lockedWallet) throw new AppError(404, "Wallet not found");
 
       const balanceBefore = Number(lockedWallet.balance);
-      const balanceAfter = balanceBefore + payload.amount;
+      const balanceAfter = Math.round((balanceBefore + payload.amount) * 100) / 100;
 
       const transaction = await this.transactionRepository.create(
         {
@@ -134,6 +134,8 @@ export class WalletService {
 
       const senderBalanceBefore = Number(lockedSender.balance);
       const recipientBalanceBefore = Number(lockedRecipient.balance);
+      const senderBalanceAfter = Math.round((senderBalanceBefore - payload.amount) * 100) / 100;
+      const recipientBalanceAfter = Math.round((recipientBalanceBefore + payload.amount) * 100) / 100;
 
       this.assertSufficientBalance(
         senderBalanceBefore,
@@ -151,7 +153,7 @@ export class WalletService {
           entry_type: "DEBIT",
           amount: payload.amount,
           balance_before: senderBalanceBefore,
-          balance_after: senderBalanceBefore - payload.amount,
+          balance_after: senderBalanceAfter,
         },
         trx,
       );
@@ -162,14 +164,14 @@ export class WalletService {
           entry_type: "CREDIT",
           amount: payload.amount,
           balance_before: recipientBalanceBefore,
-          balance_after: recipientBalanceBefore + payload.amount,
+          balance_after: recipientBalanceAfter,
         },
         trx,
       );
 
       await this.transactionRepository.updateStatus(transaction.id, "SUCCESS", trx);
 
-      return { balance: senderBalanceBefore - payload.amount };
+      return { balance: senderBalanceAfter };
     });
   }
 
@@ -179,6 +181,7 @@ export class WalletService {
       if (!lockedWallet) throw new AppError(404, "Wallet not found");
 
       const balanceBefore = Number(lockedWallet.balance);
+      const balanceAfter = Math.round((balanceBefore - payload.amount) * 100) / 100;
 
       this.assertSufficientBalance(
         balanceBefore,
@@ -208,7 +211,7 @@ export class WalletService {
           entry_type: "DEBIT",
           amount: payload.amount,
           balance_before: balanceBefore,
-          balance_after: balanceBefore - payload.amount,
+          balance_after: balanceAfter,
         },
         trx,
       );
@@ -226,7 +229,7 @@ export class WalletService {
 
       await this.transactionRepository.updateStatus(transaction.id, "SUCCESS", trx);
 
-      return { balance: balanceBefore - payload.amount };
+      return { balance: balanceAfter };
     });
   }
 

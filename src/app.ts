@@ -14,7 +14,7 @@ app.use(helmet());
 app.use(cors({
   origin: env.ALLOWED_ORIGIN ?? '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
 }));
 
 const rateLimitMessage = { success: false, message: 'Too many requests, please try again later' };
