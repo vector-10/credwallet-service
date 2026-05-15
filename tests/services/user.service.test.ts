@@ -11,7 +11,10 @@ jest.mock('../../src/services/karma.service');
 jest.mock('bcryptjs');
 jest.mock('jsonwebtoken');
 jest.mock('../../src/config/env', () => ({
-  env: { JWT_SECRET: 'test-secret', JWT_EXPIRES_IN: '24h' },
+  env: { JWT_SECRET: 'test-secret', JWT_EXPIRES_IN: '24h', ENCRYPTION_KEY: 'a'.repeat(64) },
+}));
+jest.mock('../../src/utils/encryption', () => ({
+  encrypt: jest.fn((val: string) => `encrypted:${val}`),
 }));
 
 const mockUserRepo = jest.mocked(UserRepository).prototype;
@@ -24,6 +27,7 @@ const mockUser = {
   last_name: 'User',
   email: 'test@example.com',
   phone_number: '08000000001',
+  bvn: 'encrypted:12345678901',
   password_hash: 'hashed_password',
   is_active: true,
   created_at: new Date(),
@@ -63,12 +67,14 @@ describe('UserService', () => {
         last_name: 'User',
         email: 'test@example.com',
         phone_number: '08000000001',
+        bvn: '12345678901',
         password: 'Password123!',
       });
 
       expect(result.user.email).toBe('test@example.com');
       expect(result.wallet.account_number).toBe('9100000001');
       expect(result.user).not.toHaveProperty('password_hash');
+      expect(result.user).not.toHaveProperty('bvn');
     });
 
     it('should throw 409 when email is already in use', async () => {
@@ -80,6 +86,7 @@ describe('UserService', () => {
           last_name: 'User',
           email: 'test@example.com',
           phone_number: '08000000001',
+          bvn: '12345678901',
           password: 'Password123!',
         })
       ).rejects.toMatchObject({ statusCode: 409, message: 'Email already in use' });
@@ -95,6 +102,7 @@ describe('UserService', () => {
           last_name: 'User',
           email: 'new@example.com',
           phone_number: '08000000001',
+          bvn: '12345678901',
           password: 'Password123!',
         })
       ).rejects.toMatchObject({ statusCode: 409, message: 'Phone number already in use' });
@@ -111,6 +119,7 @@ describe('UserService', () => {
           last_name: 'User',
           email: 'blacklisted@example.com',
           phone_number: '08000000001',
+          bvn: '12345678901',
           password: 'Password123!',
         })
       ).rejects.toMatchObject({ statusCode: 403, message: 'Account creation denied' });

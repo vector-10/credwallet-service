@@ -17,6 +17,7 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.enum(["1h", "12h", "24h", "7d"]).default("24h"),
   ADJUTOR_API_KEY: z.string(),
   ADJUTOR_BASE_URL: z.url(),
+  ENCRYPTION_KEY: z.string().length(64),
   ALLOWED_ORIGIN: z.string().optional(),
 });
 

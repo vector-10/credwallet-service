@@ -19,22 +19,22 @@ describe('KarmaService', () => {
   });
 
   describe('isBlacklisted', () => {
-    it('should return false when user is clean', async () => {
+    it('should return false when BVN is clean', async () => {
       mockFetch.mockResolvedValue({
         json: async () => ({}),
       });
 
-      const result = await karmaService.isBlacklisted('clean@test.com', '08000000000');
+      const result = await karmaService.isBlacklisted('12345678901');
 
       expect(result).toBe(false);
     });
 
-    it('should return true when user is blacklisted', async () => {
+    it('should return true when BVN is blacklisted', async () => {
       mockFetch.mockResolvedValue({
-        json: async () => ({ status: 'success', data: { karma_identity: 'bad@test.com' } }),
+        json: async () => ({ status: 'success', data: { karma_identity: '12345678901' } }),
       });
 
-      const result = await karmaService.isBlacklisted('bad@test.com', '08000000000');
+      const result = await karmaService.isBlacklisted('12345678901');
 
       expect(result).toBe(true);
     });
@@ -43,11 +43,11 @@ describe('KarmaService', () => {
       mockFetch.mockRejectedValue(new Error('Network error'));
 
       await expect(
-        karmaService.isBlacklisted('any@test.com', '08000000000')
+        karmaService.isBlacklisted('12345678901')
       ).rejects.toThrow(AppError);
 
       await expect(
-        karmaService.isBlacklisted('any@test.com', '08000000000')
+        karmaService.isBlacklisted('12345678901')
       ).rejects.toMatchObject({ statusCode: 503 });
     });
   });

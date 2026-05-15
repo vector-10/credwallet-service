@@ -3,6 +3,7 @@ import { idempotency } from '../../src/middlewares/idempotency.middleware';
 import { IdempotencyRepository } from '../../src/repositories/idempotency.repository';
 
 jest.mock('../../src/repositories/idempotency.repository');
+jest.mock('../../src/config/database', () => ({ default: {} }));
 
 const mockRepo = jest.mocked(IdempotencyRepository).prototype;
 const mockNext = jest.fn() as NextFunction;

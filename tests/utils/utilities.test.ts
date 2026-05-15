@@ -12,6 +12,7 @@ const mockUser: User = {
   last_name: 'User',
   email: 'test@example.com',
   phone_number: '08000000001',
+  bvn: 'encrypted:12345678901',
   password_hash: 'hashed_password',
   is_active: true,
   created_at: new Date(),

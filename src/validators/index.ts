@@ -5,6 +5,7 @@ export const registerSchema = z.object({
   last_name: z.string().min(2, 'Last name must be at least 2 characters'),
   email: z.email('Invalid email address'),
   phone_number: z.string().min(10, 'Invalid phone number').max(15, 'Invalid phone number'),
+  bvn: z.string().regex(/^\d{11}$/, 'BVN must be exactly 11 digits'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 

@@ -4,6 +4,7 @@ export interface User {
   last_name: string;
   email: string;
   phone_number: string;
+  bvn: string;
   password_hash: string;
   is_active: boolean;
   created_at: Date;
@@ -40,6 +41,7 @@ export interface CreateUserPayload {
   last_name: string;
   email: string;
   phone_number: string;
+  bvn: string;
   password: string;
 }
 
@@ -95,5 +97,5 @@ export interface AuthTokenPayload {
   email: string;
 }
 
-export type SanitizedUser = Omit<User, 'password_hash' | 'deleted_at'>;
+export type SanitizedUser = Omit<User, 'password_hash' | 'bvn' | 'deleted_at'>;
 export type SanitizedWallet = Omit<Wallet, never>;

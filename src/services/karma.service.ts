@@ -10,12 +10,8 @@ export class KarmaService {
     this.apiKey = env.ADJUTOR_API_KEY;
   }
 
-  async isBlacklisted(email: string, phone: string): Promise<boolean> {
-    const [emailBlacklisted, phoneBlacklisted] = await Promise.all([
-      this.checkIdentity(email),
-      this.checkIdentity(phone),
-    ]);
-    return emailBlacklisted || phoneBlacklisted;
+  async isBlacklisted(bvn: string): Promise<boolean> {
+    return this.checkIdentity(bvn);
   }
 
   private async checkIdentity(identity: string): Promise<boolean> {
