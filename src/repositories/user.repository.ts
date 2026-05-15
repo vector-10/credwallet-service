@@ -17,14 +17,14 @@ export class UserRepository {
   }
 
   async findById(id: string): Promise<User | null> {
-    return db('users').where({ id, deleted_at: null }).first() ?? null;
+    return db('users').where({ id, is_active: true, deleted_at: null }).first() ?? null;
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return db('users').where({ email, deleted_at: null }).first() ?? null;
+    return db('users').where({ email, is_active: true, deleted_at: null }).first() ?? null;
   }
 
   async findByPhone(phone_number: string): Promise<User | null> {
-    return db('users').where({ phone_number, deleted_at: null }).first() ?? null;
+    return db('users').where({ phone_number, is_active: true, deleted_at: null }).first() ?? null;
   }
 }

@@ -19,20 +19,22 @@ export class WalletRepository {
     return db('wallets').where({ id, is_active: true }).first() ?? null;
   }
 
-  async findByUserId(user_id: string): Promise<Wallet | null> {
-    return db('wallets').where({ user_id, is_active: true }).first() ?? null;
+  async findByUserId(user_id: string, trx?: any): Promise<Wallet | null> {
+    const builder = trx ? trx('wallets') : db('wallets');
+    return builder.where({ user_id, is_active: true }).first() ?? null;
   }
 
-  async findByAccountNumber(account_number: string): Promise<Wallet | null> {
-    return db('wallets').where({ account_number, is_active: true }).first() ?? null;
+  async findByAccountNumber(account_number: string, trx?: any): Promise<Wallet | null> {
+    const builder = trx ? trx('wallets') : db('wallets');
+    return builder.where({ account_number, is_active: true }).first() ?? null;
   }
 
   async findByIdWithLock(id: string, trx: any): Promise<Wallet | null> {
     return trx('wallets').where({ id, is_active: true }).forUpdate().first() ?? null;
   }
 
-  async findByIdInTransaction(id: string, trx: any): Promise<Wallet | null> {
-    return trx('wallets').where({ id, is_active: true }).first() ?? null;
+  async findByUserIdWithLock(user_id: string, trx: any): Promise<Wallet | null> {
+    return trx('wallets').where({ user_id, is_active: true }).forUpdate().first() ?? null;
   }
 
   async adjustBalance(id: string, amount: number, trx: any): Promise<void> {

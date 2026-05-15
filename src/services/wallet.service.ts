@@ -43,13 +43,17 @@ export class WalletService {
 
   async fund(userId: string, payload: FundWalletPayload) {
     return db.transaction(async (trx) => {
-      const wallet = await this.getWalletOrThrow(userId);
+      const lockedWallet = await this.walletRepository.findByUserIdWithLock(userId, trx);
+      if (!lockedWallet) throw new AppError(404, "Wallet not found");
+
+      const balanceBefore = Number(lockedWallet.balance);
+      const balanceAfter = balanceBefore + payload.amount;
 
       const transaction = await this.transactionRepository.create(
         {
           reference: generateTransactionReference(),
           source_wallet_id: null,
-          destination_wallet_id: wallet.id,
+          destination_wallet_id: lockedWallet.id,
           amount: payload.amount,
           type: "FUND",
           status: "PENDING",
@@ -58,16 +62,7 @@ export class WalletService {
         trx,
       );
 
-      const lockedWallet = await this.walletRepository.findByIdWithLock(
-        wallet.id,
-        trx,
-      );
-      if (!lockedWallet) throw new AppError(404, "Wallet not found");
-
-      const balanceBefore = Number(lockedWallet.balance);
-      const balanceAfter = balanceBefore + payload.amount;
-
-      await this.walletRepository.adjustBalance(wallet.id, payload.amount, trx);
+      await this.walletRepository.adjustBalance(lockedWallet.id, payload.amount, trx);
 
       await this.ledgerRepository.create(
         {
@@ -82,7 +77,7 @@ export class WalletService {
       );
       await this.ledgerRepository.create(
         {
-          wallet_id: wallet.id,
+          wallet_id: lockedWallet.id,
           transaction_id: transaction.id,
           entry_type: "CREDIT",
           amount: payload.amount,
@@ -92,11 +87,7 @@ export class WalletService {
         trx,
       );
 
-      await this.transactionRepository.updateStatus(
-        transaction.id,
-        "SUCCESS",
-        trx,
-      );
+      await this.transactionRepository.updateStatus(transaction.id, "SUCCESS", trx);
 
       return { balance: balanceAfter };
     });
@@ -104,13 +95,14 @@ export class WalletService {
 
   async transfer(userId: string, payload: TransferPayload) {
     return db.transaction(async (trx) => {
-      const senderWallet = await this.getWalletOrThrow(userId);
+      const senderWallet = await this.walletRepository.findByUserId(userId, trx);
+      if (!senderWallet) throw new AppError(404, "Wallet not found");
 
       const recipientWallet = await this.walletRepository.findByAccountNumber(
         payload.recipient_account_number,
+        trx,
       );
-      if (!recipientWallet)
-        throw new AppError(404, "Recipient wallet not found");
+      if (!recipientWallet) throw new AppError(404, "Recipient wallet not found");
 
       if (senderWallet.id === recipientWallet.id) {
         throw new AppError(400, "Cannot transfer to your own wallet");
@@ -130,19 +122,15 @@ export class WalletService {
       );
 
       const [firstId, secondId] = [senderWallet.id, recipientWallet.id].sort();
-      const lockedFirst = await this.walletRepository.findByIdWithLock(
-        firstId,
-        trx,
-      );
-      const lockedSecond = await this.walletRepository.findByIdWithLock(
-        secondId,
-        trx,
-      );
+      const lockedFirst = await this.walletRepository.findByIdWithLock(firstId, trx);
+      const lockedSecond = await this.walletRepository.findByIdWithLock(secondId, trx);
+
+      if (!lockedFirst || !lockedSecond) throw new AppError(404, "Wallet not found or deactivated");
 
       const lockedSender =
-        lockedFirst!.id === senderWallet.id ? lockedFirst! : lockedSecond!;
+        lockedFirst.id === senderWallet.id ? lockedFirst : lockedSecond;
       const lockedRecipient =
-        lockedFirst!.id === recipientWallet.id ? lockedFirst! : lockedSecond!;
+        lockedFirst.id === recipientWallet.id ? lockedFirst : lockedSecond;
 
       const senderBalanceBefore = Number(lockedSender.balance);
       const recipientBalanceBefore = Number(lockedRecipient.balance);
@@ -153,16 +141,8 @@ export class WalletService {
         Number(lockedSender.minimum_balance),
       );
 
-      await this.walletRepository.adjustBalance(
-        senderWallet.id,
-        -payload.amount,
-        trx,
-      );
-      await this.walletRepository.adjustBalance(
-        recipientWallet.id,
-        payload.amount,
-        trx,
-      );
+      await this.walletRepository.adjustBalance(senderWallet.id, -payload.amount, trx);
+      await this.walletRepository.adjustBalance(recipientWallet.id, payload.amount, trx);
 
       await this.ledgerRepository.create(
         {
@@ -187,11 +167,7 @@ export class WalletService {
         trx,
       );
 
-      await this.transactionRepository.updateStatus(
-        transaction.id,
-        "SUCCESS",
-        trx,
-      );
+      await this.transactionRepository.updateStatus(transaction.id, "SUCCESS", trx);
 
       return { balance: senderBalanceBefore - payload.amount };
     });
@@ -199,25 +175,7 @@ export class WalletService {
 
   async withdraw(userId: string, payload: WithdrawPayload) {
     return db.transaction(async (trx) => {
-      const wallet = await this.getWalletOrThrow(userId);
-
-      const transaction = await this.transactionRepository.create(
-        {
-          reference: generateTransactionReference(),
-          source_wallet_id: wallet.id,
-          destination_wallet_id: null,
-          amount: payload.amount,
-          type: "WITHDRAWAL",
-          status: "PENDING",
-          description: payload.description ?? "Wallet withdrawal",
-        },
-        trx,
-      );
-
-      const lockedWallet = await this.walletRepository.findByIdWithLock(
-        wallet.id,
-        trx,
-      );
+      const lockedWallet = await this.walletRepository.findByUserIdWithLock(userId, trx);
       if (!lockedWallet) throw new AppError(404, "Wallet not found");
 
       const balanceBefore = Number(lockedWallet.balance);
@@ -228,15 +186,24 @@ export class WalletService {
         Number(lockedWallet.minimum_balance),
       );
 
-      await this.walletRepository.adjustBalance(
-        wallet.id,
-        -payload.amount,
+      const transaction = await this.transactionRepository.create(
+        {
+          reference: generateTransactionReference(),
+          source_wallet_id: lockedWallet.id,
+          destination_wallet_id: null,
+          amount: payload.amount,
+          type: "WITHDRAWAL",
+          status: "PENDING",
+          description: payload.description ?? "Wallet withdrawal",
+        },
         trx,
       );
 
+      await this.walletRepository.adjustBalance(lockedWallet.id, -payload.amount, trx);
+
       await this.ledgerRepository.create(
         {
-          wallet_id: wallet.id,
+          wallet_id: lockedWallet.id,
           transaction_id: transaction.id,
           entry_type: "DEBIT",
           amount: payload.amount,
@@ -257,11 +224,7 @@ export class WalletService {
         trx,
       );
 
-      await this.transactionRepository.updateStatus(
-        transaction.id,
-        "SUCCESS",
-        trx,
-      );
+      await this.transactionRepository.updateStatus(transaction.id, "SUCCESS", trx);
 
       return { balance: balanceBefore - payload.amount };
     });

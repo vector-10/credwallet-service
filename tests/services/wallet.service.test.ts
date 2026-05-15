@@ -48,8 +48,7 @@ describe('WalletService', () => {
 
   describe('fund', () => {
     it('should return updated balance after funding', async () => {
-      mockWalletRepo.findByUserId.mockResolvedValue(mockWallet);
-      mockWalletRepo.findByIdWithLock.mockResolvedValue(mockWallet);
+      mockWalletRepo.findByUserIdWithLock.mockResolvedValue(mockWallet);
       mockTxnRepo.create.mockResolvedValue(mockTransaction);
       mockLedgerRepo.create.mockResolvedValue(undefined);
       mockTxnRepo.updateStatus.mockResolvedValue(undefined);
@@ -60,9 +59,7 @@ describe('WalletService', () => {
     });
 
     it('should throw 404 when wallet is not found during lock acquisition', async () => {
-      mockWalletRepo.findByUserId.mockResolvedValue(mockWallet);
-      mockTxnRepo.create.mockResolvedValue(mockTransaction);
-      mockWalletRepo.findByIdWithLock.mockResolvedValue(null);
+      mockWalletRepo.findByUserIdWithLock.mockResolvedValue(null);
 
       await expect(
         walletService.fund('user-uuid-1', { amount: 1000 })
@@ -164,9 +161,8 @@ describe('WalletService', () => {
 
   describe('withdraw', () => {
     it('should return updated balance after a successful withdrawal', async () => {
-      mockWalletRepo.findByUserId.mockResolvedValue(mockWallet);
+      mockWalletRepo.findByUserIdWithLock.mockResolvedValue(mockWallet);
       mockTxnRepo.create.mockResolvedValue({ ...mockTransaction, type: 'WITHDRAWAL' as const });
-      mockWalletRepo.findByIdWithLock.mockResolvedValue(mockWallet);
       mockWalletRepo.adjustBalance.mockResolvedValue(undefined);
       mockLedgerRepo.create.mockResolvedValue(undefined);
       mockTxnRepo.updateStatus.mockResolvedValue(undefined);
@@ -178,9 +174,7 @@ describe('WalletService', () => {
 
     it('should throw 400 when withdrawal would breach the minimum balance', async () => {
       const nearEmptyWallet = { ...mockWallet, balance: 200 };
-      mockWalletRepo.findByUserId.mockResolvedValue(nearEmptyWallet);
-      mockTxnRepo.create.mockResolvedValue({ ...mockTransaction, type: 'WITHDRAWAL' as const });
-      mockWalletRepo.findByIdWithLock.mockResolvedValue(nearEmptyWallet);
+      mockWalletRepo.findByUserIdWithLock.mockResolvedValue(nearEmptyWallet);
 
       await expect(
         walletService.withdraw('user-uuid-1', { amount: 150 })
@@ -188,9 +182,7 @@ describe('WalletService', () => {
     });
 
     it('should throw 404 when wallet is not found during lock acquisition', async () => {
-      mockWalletRepo.findByUserId.mockResolvedValue(mockWallet);
-      mockTxnRepo.create.mockResolvedValue({ ...mockTransaction, type: 'WITHDRAWAL' as const });
-      mockWalletRepo.findByIdWithLock.mockResolvedValue(null);
+      mockWalletRepo.findByUserIdWithLock.mockResolvedValue(null);
 
       await expect(
         walletService.withdraw('user-uuid-1', { amount: 500 })
