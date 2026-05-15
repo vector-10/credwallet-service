@@ -10,18 +10,33 @@ export class IdempotencyRepository {
       .first() ?? null;
   }
 
-  async create(
-    payload: Omit<IdempotencyRecord, 'id' | 'created_at'>
+  async create(payload: { key: string; expires_at: Date }): Promise<void> {
+    await db('idempotency_keys').insert({
+      id: uuidv4(),
+      key: payload.key,
+      status: 'PENDING',
+      response_status: null,
+      response_body: null,
+      expires_at: payload.expires_at,
+      created_at: new Date(),
+    });
+  }
+
+  async updateToSuccess(
+    key: string,
+    responseStatus: number,
+    responseBody: string,
+    expiresAt: Date
   ): Promise<void> {
-    try {
-      await db('idempotency_keys').insert({
-        id: uuidv4(),
-        ...payload,
-        created_at: new Date(),
-      });
-    } catch (e: any) {
-      if (e.code === 'ER_DUP_ENTRY') return;
-      throw e;
-    }
+    await db('idempotency_keys').where({ key }).update({
+      status: 'SUCCESS',
+      response_status: responseStatus,
+      response_body: responseBody,
+      expires_at: expiresAt,
+    });
+  }
+
+  async delete(key: string): Promise<void> {
+    await db('idempotency_keys').where({ key }).delete();
   }
 }

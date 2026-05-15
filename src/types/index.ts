@@ -83,8 +83,9 @@ export interface LedgerEntry {
 export interface IdempotencyRecord {
   id: string;
   key: string;
-  response_status: number;
-  response_body: string;
+  status: 'PENDING' | 'SUCCESS';
+  response_status: number | null;
+  response_body: string | null;
   expires_at: Date;
   created_at: Date;
 }
