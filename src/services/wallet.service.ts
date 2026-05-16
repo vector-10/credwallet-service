@@ -10,6 +10,7 @@ import {
 } from "../types";
 import { generateTransactionReference } from "../utils/helpers";
 import { AppError } from "../utils/errors";
+import logger from "../utils/logger";
 
 export class WalletService {
   private walletRepository: WalletRepository;
@@ -44,7 +45,10 @@ export class WalletService {
   async fund(userId: string, payload: FundWalletPayload) {
     return db.transaction(async (trx) => {
       const lockedWallet = await this.walletRepository.findByUserIdWithLock(userId, trx);
-      if (!lockedWallet) throw new AppError(404, "Wallet not found");
+      if (!lockedWallet) {
+        logger.error('Fund failed — wallet not found', { userId });
+        throw new AppError(404, "Wallet not found");
+      }
 
       const balanceBefore = Number(lockedWallet.balance);
       const balanceAfter = Math.round((balanceBefore + payload.amount) * 100) / 100;
@@ -89,6 +93,7 @@ export class WalletService {
 
       await this.transactionRepository.updateStatus(transaction.id, "SUCCESS", trx);
 
+      logger.info('Wallet funded', { userId, walletId: lockedWallet.id });
       return { balance: balanceAfter };
     });
   }
@@ -96,15 +101,22 @@ export class WalletService {
   async transfer(userId: string, payload: TransferPayload) {
     return db.transaction(async (trx) => {
       const senderWallet = await this.walletRepository.findByUserId(userId, trx);
-      if (!senderWallet) throw new AppError(404, "Wallet not found");
+      if (!senderWallet) {
+        logger.error('Transfer failed — sender wallet not found', { userId });
+        throw new AppError(404, "Wallet not found");
+      }
 
       const recipientWallet = await this.walletRepository.findByAccountNumber(
         payload.recipient_account_number,
         trx,
       );
-      if (!recipientWallet) throw new AppError(404, "Recipient wallet not found");
+      if (!recipientWallet) {
+        logger.warn('Transfer failed — recipient wallet not found', { userId, recipientAccount: payload.recipient_account_number });
+        throw new AppError(404, "Recipient wallet not found");
+      }
 
       if (senderWallet.id === recipientWallet.id) {
+        logger.warn('Transfer failed — self-transfer attempt', { userId, walletId: senderWallet.id });
         throw new AppError(400, "Cannot transfer to your own wallet");
       }
 
@@ -125,7 +137,10 @@ export class WalletService {
       const lockedFirst = await this.walletRepository.findByIdWithLock(firstId, trx);
       const lockedSecond = await this.walletRepository.findByIdWithLock(secondId, trx);
 
-      if (!lockedFirst || !lockedSecond) throw new AppError(404, "Wallet not found or deactivated");
+      if (!lockedFirst || !lockedSecond) {
+        logger.error('Transfer failed — wallet lock acquisition failed', { userId, senderWalletId: senderWallet.id, recipientWalletId: recipientWallet.id });
+        throw new AppError(404, "Wallet not found or deactivated");
+      }
 
       const lockedSender =
         lockedFirst.id === senderWallet.id ? lockedFirst : lockedSecond;
@@ -137,11 +152,12 @@ export class WalletService {
       const senderBalanceAfter = Math.round((senderBalanceBefore - payload.amount) * 100) / 100;
       const recipientBalanceAfter = Math.round((recipientBalanceBefore + payload.amount) * 100) / 100;
 
-      this.assertSufficientBalance(
-        senderBalanceBefore,
-        payload.amount,
-        Number(lockedSender.minimum_balance),
-      );
+      try {
+        this.assertSufficientBalance(senderBalanceBefore, payload.amount, Number(lockedSender.minimum_balance));
+      } catch (err) {
+        logger.warn('Transfer failed — insufficient balance', { userId, walletId: senderWallet.id });
+        throw err;
+      }
 
       await this.walletRepository.adjustBalance(senderWallet.id, -payload.amount, trx);
       await this.walletRepository.adjustBalance(recipientWallet.id, payload.amount, trx);
@@ -171,6 +187,7 @@ export class WalletService {
 
       await this.transactionRepository.updateStatus(transaction.id, "SUCCESS", trx);
 
+      logger.info('Transfer completed', { senderId: userId, senderWalletId: senderWallet.id, recipientWalletId: recipientWallet.id });
       return { balance: senderBalanceAfter };
     });
   }
@@ -178,16 +195,20 @@ export class WalletService {
   async withdraw(userId: string, payload: WithdrawPayload) {
     return db.transaction(async (trx) => {
       const lockedWallet = await this.walletRepository.findByUserIdWithLock(userId, trx);
-      if (!lockedWallet) throw new AppError(404, "Wallet not found");
+      if (!lockedWallet) {
+        logger.error('Withdrawal failed — wallet not found', { userId });
+        throw new AppError(404, "Wallet not found");
+      }
 
       const balanceBefore = Number(lockedWallet.balance);
       const balanceAfter = Math.round((balanceBefore - payload.amount) * 100) / 100;
 
-      this.assertSufficientBalance(
-        balanceBefore,
-        payload.amount,
-        Number(lockedWallet.minimum_balance),
-      );
+      try {
+        this.assertSufficientBalance(balanceBefore, payload.amount, Number(lockedWallet.minimum_balance));
+      } catch (err) {
+        logger.warn('Withdrawal failed — insufficient balance', { userId, walletId: lockedWallet.id });
+        throw err;
+      }
 
       const transaction = await this.transactionRepository.create(
         {
@@ -229,6 +250,7 @@ export class WalletService {
 
       await this.transactionRepository.updateStatus(transaction.id, "SUCCESS", trx);
 
+      logger.info('Withdrawal completed', { userId, walletId: lockedWallet.id });
       return { balance: balanceAfter };
     });
   }

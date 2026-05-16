@@ -9,6 +9,7 @@ import { generateAccountNumber, sanitizeUser, sanitizeWallet } from "../utils/he
 import { AppError } from "../utils/errors";
 import { encrypt, hashBvn } from "../utils/encryption";
 import db from "../config/database";
+import logger from "../utils/logger";
 
 export class UserService {
   private userRepository: UserRepository;
@@ -33,7 +34,10 @@ export class UserService {
     if (existingBvn) throw new AppError(409, "An account with this BVN already exists");
 
     const isBlacklisted = await this.karmaService.isBlacklisted(payload.bvn);
-    if (isBlacklisted) throw new AppError(403, "Account creation denied");
+    if (isBlacklisted) {
+      logger.warn('Blacklisted user registration attempt blocked');
+      throw new AppError(403, "Account creation denied");
+    }
 
     const password_hash = await bcrypt.hash(payload.password, 12);
     const bvn = encrypt(payload.bvn);
@@ -55,17 +59,27 @@ export class UserService {
       return [user, wallet] as const;
     });
 
+    logger.info('User registered', { userId: user.id });
     return { user: sanitizeUser(user), wallet: sanitizeWallet(wallet) };
   }
 
   async login(payload: LoginPayload) {
     const user = await this.userRepository.findByEmail(payload.email);
-    if (!user) throw new AppError(401, "Invalid email or password");
+    if (!user) {
+      logger.warn('Failed login attempt — email not found');
+      throw new AppError(401, "Invalid email or password");
+    }
 
-    if (!user.is_active) throw new AppError(403, "Account is deactivated");
+    if (!user.is_active) {
+      logger.warn('Login attempt on deactivated account', { userId: user.id });
+      throw new AppError(403, "Account is deactivated");
+    }
 
     const isMatch = await bcrypt.compare(payload.password, user.password_hash);
-    if (!isMatch) throw new AppError(401, "Invalid email or password");
+    if (!isMatch) {
+      logger.warn('Failed login attempt — wrong password', { userId: user.id });
+      throw new AppError(401, "Invalid email or password");
+    }
 
     const token = jwt.sign(
       { userId: user.id, email: user.email },
@@ -73,6 +87,7 @@ export class UserService {
       { expiresIn: env.JWT_EXPIRES_IN },
     );
 
+    logger.info('User logged in', { userId: user.id });
     return { token, user: sanitizeUser(user) };
   }
 }

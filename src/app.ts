@@ -2,10 +2,12 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import morgan from 'morgan';
 import authRoutes from './routes/auth.routes';
 import walletRoutes from './routes/wallet.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { env } from './config/env';
+import logger from './utils/logger';
 
 const app = express();
 
@@ -34,6 +36,10 @@ const walletLimiter = rateLimit({
   legacyHeaders: false,
   message: rateLimitMessage,
 });
+
+app.use(morgan('combined', {
+  stream: { write: (msg: string) => logger.http(msg.trim()) },
+}));
 
 app.use(express.json());
 
