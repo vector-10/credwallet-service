@@ -7,7 +7,7 @@ import { CreateUserPayload, LoginPayload } from "../types";
 import { env } from "../config/env";
 import { generateAccountNumber, sanitizeUser, sanitizeWallet } from "../utils/helpers";
 import { AppError } from "../utils/errors";
-import { encrypt } from "../utils/encryption";
+import { encrypt, hashBvn } from "../utils/encryption";
 import db from "../config/database";
 
 export class UserService {
@@ -28,6 +28,10 @@ export class UserService {
     const existingPhone = await this.userRepository.findByPhone(payload.phone_number);
     if (existingPhone) throw new AppError(409, "Phone number already in use");
 
+    const bvn_hash = hashBvn(payload.bvn);
+    const existingBvn = await this.userRepository.findByBvnHash(bvn_hash);
+    if (existingBvn) throw new AppError(409, "An account with this BVN already exists");
+
     const isBlacklisted = await this.karmaService.isBlacklisted(payload.bvn);
     if (isBlacklisted) throw new AppError(403, "Account creation denied");
 
@@ -41,6 +45,7 @@ export class UserService {
         email: payload.email,
         phone_number: payload.phone_number,
         bvn,
+        bvn_hash,
         password_hash,
       }, trx);
 

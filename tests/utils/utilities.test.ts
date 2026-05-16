@@ -13,6 +13,7 @@ const mockUser: User = {
   email: 'test@example.com',
   phone_number: '08000000001',
   bvn: 'encrypted:12345678901',
+  bvn_hash: 'hash:12345678901',
   password_hash: 'hashed_password',
   is_active: true,
   created_at: new Date(),

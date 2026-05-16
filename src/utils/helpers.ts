@@ -14,7 +14,7 @@ export const generateTransactionReference = (): string => {
 };
 
 export const sanitizeUser = (user: User): SanitizedUser => {
-  const { password_hash, bvn, deleted_at, ...sanitized } = user;
+  const { password_hash, bvn, bvn_hash, deleted_at, ...sanitized } = user;
   return {
     ...sanitized,
     is_active: Boolean(sanitized.is_active),

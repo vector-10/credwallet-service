@@ -4,7 +4,7 @@ import { User, CreateUserPayload } from '../types';
 
 export class UserRepository {
   async create(
-    payload: Omit<CreateUserPayload, 'password'> & { password_hash: string },
+    payload: Omit<CreateUserPayload, 'password'> & { password_hash: string; bvn_hash: string },
     trx?: any
   ): Promise<User> {
     const id = uuidv4();
@@ -29,5 +29,9 @@ export class UserRepository {
 
   async findByPhone(phone_number: string): Promise<User | null> {
     return db('users').where({ phone_number, is_active: true, deleted_at: null }).first() ?? null;
+  }
+
+  async findByBvnHash(bvn_hash: string): Promise<User | null> {
+    return db('users').where({ bvn_hash, is_active: true, deleted_at: null }).first() ?? null;
   }
 }

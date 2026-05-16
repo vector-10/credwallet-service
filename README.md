@@ -369,8 +369,4 @@ The current rate limiter uses in-memory storage, which works correctly for a sin
 
 > `https://<DEPLOYMENT_URL_PLACEHOLDER>`
 
-## Repository
-
-> `https://github.com/vector-10/credwallet-service`
-
 ---

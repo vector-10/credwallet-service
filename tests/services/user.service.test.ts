@@ -15,6 +15,7 @@ jest.mock('../../src/config/env', () => ({
 }));
 jest.mock('../../src/utils/encryption', () => ({
   encrypt: jest.fn((val: string) => `encrypted:${val}`),
+  hashBvn: jest.fn((val: string) => `hash:${val}`),
 }));
 jest.mock('../../src/config/database', () => ({
   __esModule: true,
@@ -32,6 +33,7 @@ const mockUser = {
   email: 'test@example.com',
   phone_number: '08000000001',
   bvn: 'encrypted:12345678901',
+  bvn_hash: 'hash:12345678901',
   password_hash: 'hashed_password',
   is_active: true,
   created_at: new Date(),
@@ -61,6 +63,7 @@ describe('UserService', () => {
     it('should create a user and wallet when all inputs are valid', async () => {
       mockUserRepo.findByEmail.mockResolvedValue(null);
       mockUserRepo.findByPhone.mockResolvedValue(null);
+      mockUserRepo.findByBvnHash.mockResolvedValue(null);
       mockKarmaService.isBlacklisted.mockResolvedValue(false);
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
       mockUserRepo.create.mockResolvedValue(mockUser);
@@ -79,6 +82,23 @@ describe('UserService', () => {
       expect(result.wallet.account_number).toBe('9100000001');
       expect(result.user).not.toHaveProperty('password_hash');
       expect(result.user).not.toHaveProperty('bvn');
+    });
+
+    it('should throw 409 when BVN is already registered', async () => {
+      mockUserRepo.findByEmail.mockResolvedValue(null);
+      mockUserRepo.findByPhone.mockResolvedValue(null);
+      mockUserRepo.findByBvnHash.mockResolvedValue(mockUser);
+
+      await expect(
+        userService.register({
+          first_name: 'Test',
+          last_name: 'User',
+          email: 'other@example.com',
+          phone_number: '08000000002',
+          bvn: '12345678901',
+          password: 'Password123!',
+        })
+      ).rejects.toMatchObject({ statusCode: 409, message: 'An account with this BVN already exists' });
     });
 
     it('should throw 409 when email is already in use', async () => {
@@ -115,6 +135,7 @@ describe('UserService', () => {
     it('should throw 403 when user is on the karma blacklist', async () => {
       mockUserRepo.findByEmail.mockResolvedValue(null);
       mockUserRepo.findByPhone.mockResolvedValue(null);
+      mockUserRepo.findByBvnHash.mockResolvedValue(null);
       mockKarmaService.isBlacklisted.mockResolvedValue(true);
 
       await expect(

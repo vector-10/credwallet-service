@@ -20,3 +20,10 @@ export const decrypt = (encryptedText: string): string => {
   const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
 };
+
+export const hashBvn = (bvn: string): string => {
+  return crypto
+    .createHmac('sha256', Buffer.from(env.ENCRYPTION_KEY, 'hex'))
+    .update(bvn)
+    .digest('hex');
+};
