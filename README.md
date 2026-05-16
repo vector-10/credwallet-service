@@ -2,7 +2,6 @@
 
 A production-ready wallet service built to enable users receive, transfer, and withdraw funds for lending operations. CredWallet is designed with financial accuracy at its core — every transaction is traceable, every balance is protected, and bad actors are screened out before they ever touch the system.
 
-
 ---
 
 ## Table of Contents
@@ -29,20 +28,20 @@ Beyond basic wallet operations, CredWallet automatically screens out users who a
 
 ## Tech Stack
 
-| Technology | Role | Why |
-|---|---|---|
-| NodeJS (LTS) | Runtime | Required by assessment; industry standard for high-throughput APIs |
-| TypeScript (strict) | Language | Catches type errors at compile time — non-negotiable for financial systems |
-| Express | Web framework | Minimal and flexible; keeps the codebase lean without much framework overhead |
-| KnexJS | Query builder / SQL toolkit | Required by assessment; gives full SQL control with migration support |
-| MySQL | Database | Required by assessment; relational integrity suits financial data |
-| Zod | Validation | Runtime schema validation with TypeScript type inference at the boundary |
-| bcryptjs | Password hashing | Adaptive hashing with configurable salt rounds |
-| jsonwebtoken | Authentication | Faux token-based auth as specified by the assessment |
-| Helmet | Security | Sets HTTP security headers out of the box |
-| express-rate-limit | Rate limiting | Protects auth and wallet endpoints from brute force and abuse |
-| CORS | Cross-origin | Controls which origins can access the API |
-| uuid | ID generation | Cryptographically random UUIDs for security of user data |
+| Technology          | Role                        | Why                                                                           |
+| ------------------- | --------------------------- | ----------------------------------------------------------------------------- |
+| NodeJS (LTS)        | Runtime                     | Required by assessment; industry standard for high-throughput APIs            |
+| TypeScript (strict) | Language                    | Catches type errors at compile time — non-negotiable for financial systems    |
+| Express             | Web framework               | Minimal and flexible; keeps the codebase lean without much framework overhead |
+| KnexJS              | Query builder / SQL toolkit | Required by assessment; gives full SQL control with migration support         |
+| MySQL               | Database                    | Required by assessment; relational integrity suits financial data             |
+| Zod                 | Validation                  | Runtime schema validation with TypeScript type inference at the boundary      |
+| bcryptjs            | Password hashing            | Adaptive hashing with configurable salt rounds                                |
+| jsonwebtoken        | Authentication              | Faux token-based auth as specified by the assessment                          |
+| Helmet              | Security                    | Sets HTTP security headers out of the box                                     |
+| express-rate-limit  | Rate limiting               | Protects auth and wallet endpoints from brute force and abuse                 |
+| CORS                | Cross-origin                | Controls which origins can access the API                                     |
+| uuid                | ID generation               | Cryptographically random UUIDs for security of user data                      |
 
 ---
 
@@ -50,40 +49,7 @@ Beyond basic wallet operations, CredWallet automatically screens out users who a
 
 CredWallet follows a layered architecture with clear separation of concerns. Each layer has one job and depends only on the layer below it.
 
-```
-┌─────────────────────────────────────┐
-│           HTTP Request              │
-└────────────────┬────────────────────┘
-                 │
-┌────────────────▼────────────────────┐
-│     Middlewares                     │
-│  (Auth, Validation, Rate Limit,     │
-│   Helmet, CORS, Error Handler)      │
-└────────────────┬────────────────────┘
-                 │
-┌────────────────▼────────────────────┐
-│          Controllers                │
-│   (Thin layer — delegates to        │
-│    service, returns HTTP response)  │
-└────────────────┬────────────────────┘
-                 │
-┌────────────────▼────────────────────┐
-│           Services                  │
-│  (All business logic lives here:    │
-│   balance checks, ledger writes,    │
-│   lock acquisition, state machine)  │
-└────────────────┬────────────────────┘
-                 │
-┌────────────────▼────────────────────┐
-│         Repositories                │
-│  (Database access only — no logic,  │
-│   no decisions, just queries)       │
-└────────────────┬────────────────────┘
-                 │
-┌────────────────▼────────────────────┐
-│            MySQL                    │
-└─────────────────────────────────────┘
-```
+![Architecture Diagram](docs/architecture.png)
 
 This separation is intentional. Services can be fully unit tested in isolation by mocking repositories. Controllers stay thin. The database is never touched directly from business logic.
 
@@ -93,8 +59,7 @@ This separation is intentional. Services can be fully unit tested in isolation b
 
 ### ER Diagram
 
-<!-- ER_DIAGRAM_PLACEHOLDER -->
-> _ER Diagram — [View full diagram](<ER_DIAGRAM_LINK>)_
+![ER Diagram](docs/erd.png)
 
 ### Tables
 
@@ -123,11 +88,11 @@ For a wallet that handles sensitive financial operations, a double-entry ledger 
 
 This was not required by the assessment spec. It was added because it is a basic requirement for any wallet system handling real funds in a production environment. Every operation writes two immutable ledger entries and records `balance_before` and `balance_after` on each affected wallet. The `balance` column on the wallets table is a pre-computed running total — updated atomically inside the same database transaction that writes the ledger entries. It cannot drift from the ledger because they share the same transaction boundary: if the ledger write fails, the balance update rolls back too, and vice versa. The ground truth is always the ledger; the balance column is what makes reads fast without sacrificing correctness.
 
-| Operation | Entry 1 | Entry 2 |
-|-----------|---------|---------|
-| Fund | CREDIT → user wallet (with balance snapshot) | DEBIT → external source (wallet_id = null) |
-| Transfer | DEBIT → sender wallet | CREDIT → recipient wallet |
-| Withdraw | DEBIT → user wallet | CREDIT → external destination (wallet_id = null) |
+| Operation | Entry 1                                      | Entry 2                                          |
+| --------- | -------------------------------------------- | ------------------------------------------------ |
+| Fund      | CREDIT → user wallet (with balance snapshot) | DEBIT → external source (wallet_id = null)       |
+| Transfer  | DEBIT → sender wallet                        | CREDIT → recipient wallet                        |
+| Withdraw  | DEBIT → user wallet                          | CREDIT → external destination (wallet_id = null) |
 
 ### 2. Race Condition Prevention
 
@@ -154,9 +119,9 @@ PENDING → SUCCESS
 
 The transaction record is created as `PENDING` at the start of the database transaction. After all balance adjustments and ledger entries are confirmed, it is updated to `SUCCESS`. If anything fails, the database transaction rolls back and nothing is persisted — including the `PENDING` record.
 
-### 5. Karma Blacklist — Dual Identity Check
+### 5. Karma Blacklist — BVN Check
 
-The Lendsqr Adjutor Karma API is checked against both the user's **email** and **phone number** in parallel at registration. Both checks must pass before the account is created. Checking only one identifier leaves a gap — a blacklisted user could register with a different email but the same phone number, or vice versa.
+The Lendsqr Adjutor Karma API is checked against the user's **BVN** at registration. If the BVN appears on the blacklist, the account is denied before any data is written. BVN was chosen as the identity anchor because it is a government-issued, non-changeable identifier — unlike email or phone number, a blacklisted user cannot simply register with a different one.
 
 ### 6. Idempotency Keys
 
@@ -182,26 +147,33 @@ Base URL: `https://<DEPLOYMENT_URL_PLACEHOLDER>/api/v1`
 
 All wallet endpoints require an `Authorization: Bearer <token>` header.
 
+Mutating wallet operations (fund, transfer, withdraw) accept an optional `Idempotency-Key` header. When provided, the server caches the response for 24 hours and replays it on duplicate requests — preventing double charges on network retries.
+
 ### Authentication
 
 #### Register
+
 ```
 POST /auth/register
 ```
+
 ```json
 {
   "first_name": "John",
   "last_name": "Doe",
   "email": "john@example.com",
   "phone_number": "08012345678",
+  "bvn": "12345678901",
   "password": "Password123!"
 }
 ```
 
 #### Login
+
 ```
 POST /auth/login
 ```
+
 ```json
 {
   "email": "john@example.com",
@@ -212,17 +184,21 @@ POST /auth/login
 ### Wallet
 
 #### Fund Wallet
+
 ```
 POST /wallet/fund
 ```
+
 ```json
 { "amount": 5000 }
 ```
 
 #### Transfer
+
 ```
 POST /wallet/transfer
 ```
+
 ```json
 {
   "recipient_account_number": "9123456789",
@@ -232,9 +208,11 @@ POST /wallet/transfer
 ```
 
 #### Withdraw
+
 ```
 POST /wallet/withdraw
 ```
+
 ```json
 {
   "amount": 500,
@@ -243,16 +221,24 @@ POST /wallet/withdraw
 ```
 
 #### Get Balance
+
 ```
 GET /wallet/balance
 ```
 
 #### Get Transactions
+
 ```
-GET /wallet/transactions
+GET /wallet/transactions?page=1&limit=20
 ```
 
+| Query Param | Type   | Default | Description                    |
+| ----------- | ------ | ------- | ------------------------------ |
+| `page`      | number | 1       | Page number                    |
+| `limit`     | number | 20      | Results per page (max 100)     |
+
 #### Health Check
+
 ```
 GET /health
 ```
@@ -299,6 +285,8 @@ JWT_EXPIRES_IN=24h
 ADJUTOR_API_KEY=your_adjutor_api_key
 ADJUTOR_BASE_URL=https://adjutor.lendsqr.com/v2
 
+ENCRYPTION_KEY=your_64_char_hex_key_here
+
 ALLOWED_ORIGIN=http://localhost:3000
 ```
 
@@ -332,13 +320,13 @@ npx jest --coverage
 
 ### Test Coverage
 
-| Layer | Coverage |
-|-------|----------|
-| Services (karma, user, wallet) | 100% statements, branches, functions, lines |
-| Middlewares (auth, validate, error, idempotency) | 100% |
-| Utilities (sanitization, generators) | 100% |
+| Layer                                            | Tests                                                    |
+| ------------------------------------------------ | -------------------------------------------------------- |
+| Services (karma, user, wallet)                   | Registration, login, fund, transfer, withdraw flows      |
+| Middlewares (auth, validate, error, idempotency) | Auth guards, validation errors, idempotency replay       |
+| Utilities (sanitization, generators)             | Field stripping, type coercion, uniqueness               |
 
-**8 test files, 46 tests.** Both positive and negative scenarios are covered for every business rule — including edge cases like race condition lock failures, self-transfers, minimum balance breaches, blacklisted users, deactivated accounts, and idempotency key replay.
+**8 test files, 51 tests.** Both positive and negative scenarios are covered for every business rule — including edge cases like race condition lock failures, self-transfers, minimum balance breaches, blacklisted users, deactivated accounts, and idempotency key replay.
 
 Business logic is unit tested in isolation through repository mocking. Controllers and routes contain no business logic and are better verified through integration tests.
 
@@ -349,18 +337,23 @@ Business logic is unit tested in isolation through repository mocking. Controlle
 These are deliberate decisions made to stay within MVP scope without compromising on the core requirements. They are not oversights.
 
 ### Derived Balance (not implemented)
+
 A fully production-grade ledger derives the wallet balance entirely from the sum of settled ledger entries (`SUM(CREDIT) - SUM(DEBIT)`), never storing it directly. The current implementation maintains `balance` as a pre-computed running total, updated atomically alongside every ledger write inside the same database transaction. For this MVP, this is the right trade-off — it keeps reads fast and the logic simple without sacrificing correctness.
 
 ### Chart of Accounts (not implemented)
+
 Production fintech systems model asset accounts, liability accounts, revenue accounts, and float/escrow accounts so the books always balance at the company level (`Assets = Liabilities + Equity`). This was intentionally left out — it requires product-level decisions about fee structure, escrow handling, and regulatory reporting that are out of scope for this assessment.
 
 ### Multi-Currency (not implemented)
+
 Supporting multiple currencies would require exchange rate management, currency conversion logic, and more complex wallet relationships. CredWallet is scoped to a single currency (NGN) to keep the focus on the core wallet functionality without unnecessary complexity.
 
 ### Full Transaction State Machine (partially implemented)
+
 The assessment spec does not require webhook handling or async payment processing. The current `PENDING → SUCCESS` flow is correct for synchronous operations. A full production state machine would add `PROCESSING` and `REVERSED` states for async payment gateway integration and refund flows.
 
 ### In-Memory Rate Limiting
+
 The current rate limiter uses in-memory storage, which works correctly for a single-instance deployment. A production multi-instance setup would require a shared store (Redis) to enforce limits across instances.
 
 ---

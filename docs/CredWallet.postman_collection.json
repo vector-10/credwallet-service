@@ -1,0 +1,453 @@
+{
+  "info": {
+    "name": "CredWallet Service",
+    "description": "API collection for the CredWallet wallet service. Set the `baseUrl` variable to your deployment URL and the `token` variable will be populated automatically after login.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"email\": \"testuser@example.com\",\n  \"phone_number\": \"08012345678\",\n  \"bvn\": \"12345678901\",\n  \"password\": \"Password123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.token) {",
+                  "  pm.collectionVariables.set('token', res.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"password\": \"Password123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/balance",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "balance"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/transactions?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "transactions"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Fund Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "fund-{{$randomUUID}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/fund",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "fund"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000.00\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Transfer Funds",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "transfer-{{$randomUUID}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/transfer",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "transfer"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient_account_number\": \"9100000001\",\n  \"amount\": 1000.00,\n  \"description\": \"Payment for services\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Withdraw Funds",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "withdraw-{{$randomUUID}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/withdraw",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "withdraw"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500.00,\n  \"description\": \"ATM withdrawal\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Cases",
+      "description": "Demonstrates how the API responds to invalid or rejected requests.",
+      "item": [
+        {
+          "name": "Register — Duplicate Email (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"email\": \"testuser@example.com\",\n  \"phone_number\": \"08099999999\",\n  \"bvn\": \"99999999999\",\n  \"password\": \"Password123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register — Invalid BVN Format (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"email\": \"newuser@example.com\",\n  \"phone_number\": \"08011111111\",\n  \"bvn\": \"1234\",\n  \"password\": \"Password123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login — Wrong Password (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"password\": \"WrongPassword!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Fund — No Auth Token (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "fund-no-auth-001" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/fund",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "fund"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1000.00\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Fund — Invalid Amount (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "fund-invalid-amount-001" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/fund",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "fund"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 0.001\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Transfer — Insufficient Balance (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "transfer-insufficient-001" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/transfer",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "transfer"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient_account_number\": \"9100000001\",\n  \"amount\": 9999999.00,\n  \"description\": \"Exceeds balance\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Transfer — Non-existent Account (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "transfer-notfound-001" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/transfer",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "transfer"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient_account_number\": \"9000000000\",\n  \"amount\": 100.00,\n  \"description\": \"Account does not exist\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Fund — Missing Idempotency-Key (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/fund",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "fund"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1000.00\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Idempotency",
+      "description": "Demonstrates that repeating a request with the same Idempotency-Key returns the original response without executing the operation a second time.",
+      "item": [
+        {
+          "name": "Fund — First Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "idem-test-fund-001" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/fund",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "fund"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 2000.00\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Fund — Replay (same key, no double credit)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "idem-test-fund-001" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/fund",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "fund"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 2000.00\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Transfer — First Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "idem-test-transfer-001" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/transfer",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "transfer"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient_account_number\": \"9100000001\",\n  \"amount\": 500.00,\n  \"description\": \"Idempotency test transfer\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Transfer — Replay (same key, no double debit)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "idem-test-transfer-001" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/transfer",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "transfer"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient_account_number\": \"9100000001\",\n  \"amount\": 500.00,\n  \"description\": \"Idempotency test transfer\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
