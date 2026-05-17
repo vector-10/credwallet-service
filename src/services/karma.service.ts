@@ -30,10 +30,7 @@ export class KarmaService {
         throw new AppError(503, "Unable to verify user identity. Please try again.");
       }
       const data = (await response.json()) as any;
-      if (data?.status !== "success") {
-        throw new AppError(503, "Unable to verify user identity. Please try again.");
-      }
-      return data.data !== null;
+      return data?.data != null;
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError(503, "Unable to verify user identity. Please try again.");
