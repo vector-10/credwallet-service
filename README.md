@@ -4,6 +4,8 @@ A   production-ready wallet service built to enable users receive, transfer, and
 
 ---
 
+> **For Reviewers:** A Postman collection covering all endpoints — auth, wallet operations, error cases, and idempotency replay — is included at the root of this repository as `CredWallet.postman_collection.json`. Import it directly into Postman to test the API. Set the `baseUrl` collection variable to the live deployment URL or `http://localhost:5000/api/v1` for local testing. The login request automatically saves the JWT token for all subsequent requests.
+
 ## Table of Contents
 
 - [Overview](#overview)
