@@ -120,19 +120,6 @@ export class WalletService {
         throw new AppError(400, "Cannot transfer to your own wallet");
       }
 
-      const transaction = await this.transactionRepository.create(
-        {
-          reference: generateTransactionReference(),
-          source_wallet_id: senderWallet.id,
-          destination_wallet_id: recipientWallet.id,
-          amount: payload.amount,
-          type: "TRANSFER",
-          status: "PENDING",
-          description: payload.description ?? "Wallet transfer",
-        },
-        trx,
-      );
-
       const [firstId, secondId] = [senderWallet.id, recipientWallet.id].sort();
       const lockedFirst = await this.walletRepository.findByIdWithLock(firstId, trx);
       const lockedSecond = await this.walletRepository.findByIdWithLock(secondId, trx);
@@ -158,6 +145,19 @@ export class WalletService {
         logger.warn('Transfer failed — insufficient balance', { userId, walletId: senderWallet.id });
         throw err;
       }
+
+      const transaction = await this.transactionRepository.create(
+        {
+          reference: generateTransactionReference(),
+          source_wallet_id: senderWallet.id,
+          destination_wallet_id: recipientWallet.id,
+          amount: payload.amount,
+          type: "TRANSFER",
+          status: "PENDING",
+          description: payload.description ?? "Wallet transfer",
+        },
+        trx,
+      );
 
       await this.walletRepository.adjustBalance(senderWallet.id, -payload.amount, trx);
       await this.walletRepository.adjustBalance(recipientWallet.id, payload.amount, trx);

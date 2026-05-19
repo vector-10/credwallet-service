@@ -31,7 +31,12 @@ export class WalletController {
   });
 
   getTransactions = asyncHandler(async (req: Request, res: Response) => {
-    const { page, limit } = paginationSchema.parse(req.query);
+    const parsed = paginationSchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(422).json({ success: false, message: 'Validation failed', errors: parsed.error.flatten((i) => i.message).fieldErrors });
+      return;
+    }
+    const { page, limit } = parsed.data;
     const result = await this.walletService.getTransactions(req.user!.userId, page, limit);
     res.status(200).json({ success: true, message: 'Transactions retrieved successfully', data: result });
   });
