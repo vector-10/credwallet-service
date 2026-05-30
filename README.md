@@ -1,6 +1,6 @@
 # CredWallet Service
 
-A   production-ready wallet service built to enable users receive, transfer, and withdraw funds for lending operations. CredWallet is designed with financial accuracy at its core — every transaction is traceable, every balance is protected, and bad actors are screened out before they ever touch the system.
+A   production-ready wallet service built to enable users receive, transfer, and withdraw funds for lending operations. CredWallet is designed with financial accuracy at its core. Every transaction is traceable, every balance is protected, and bad actors are screened out before they ever touch the system.
 
 ---
 
