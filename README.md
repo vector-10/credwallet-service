@@ -273,7 +273,7 @@ cp .env.example .env
 
 ```env
 NODE_ENV=development
-PORT=3000
+PORT=5000
 
 DB_HOST=localhost
 DB_PORT=3306
