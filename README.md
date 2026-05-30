@@ -362,6 +362,6 @@ The current rate limiter uses in-memory storage, which works correctly for a sin
 
 ## Live Demo
 
-> `https://<DEPLOYMENT_URL_PLACEHOLDER>`
+> `https://chukwuduzie-akalonu-lendsqr-be-test.onrender.com`
 
 ---
